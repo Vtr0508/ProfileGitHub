@@ -1,15 +1,16 @@
 package br.com.victor.profilegithub.ui.screen
 
+import android.provider.ContactsContract.Profile
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Card
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
@@ -23,8 +24,8 @@ import androidx.compose.ui.tooling.preview.Preview
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.victor.profilegithub.model.GitHubRepository
 import br.com.victor.profilegithub.model.ProfileUiState
-import br.com.victor.profilegithub.model.toProfileUiState
 import br.com.victor.profilegithub.ui.theme.ProfileGitHubTheme
 import br.com.victor.profilegithub.webclient.GitHubWebClient
 import coil.compose.AsyncImage
@@ -34,17 +35,39 @@ fun ProfileScreen(
     user: String,
     webClient: GitHubWebClient = GitHubWebClient()
 ) {
-    val foundUser by webClient.findProfileBy(user)
-        .collectAsState(initial = null)
-
-    foundUser?.let { userProfile ->
-        val state = userProfile.toProfileUiState()
-        Profile(state = state)
+    val uiState = webClient.uiState
+    LaunchedEffect(null) {
+        webClient.findProfileBy(user)
     }
+    Profile(uiState = uiState)
+
 }
 
 @Composable
-fun Profile(state: ProfileUiState) {
+fun Profile(uiState: ProfileUiState) {
+    LazyColumn {
+        item {
+            ProfileHeader(uiState = uiState)
+        }
+        item {
+            if (uiState.repository.isNotEmpty()) {
+                Text(
+                    text = "Repositórios",
+                    Modifier.padding(8.dp),
+                    fontSize = 24.sp
+                )
+            }
+        }
+        items(uiState.repository){repo ->
+            RepositoryItem(repo = repo)
+
+        }
+    }
+
+}
+
+@Composable
+fun ProfileHeader(uiState: ProfileUiState) {
     Column {
         val boxHeight = remember {
             150.dp
@@ -65,7 +88,7 @@ fun Profile(state: ProfileUiState) {
                 .height(boxHeight)
         ) {
             AsyncImage(
-                state.image,
+                uiState.image,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -85,13 +108,13 @@ fun Profile(state: ProfileUiState) {
             horizontalAlignment = CenterHorizontally
         ) {
             Text(
-                text = state.name,
+                text = uiState.name,
                 fontSize = 32.sp,
                 fontFamily = FontFamily.SansSerif,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = state.user,
+                text = uiState.user,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -100,7 +123,7 @@ fun Profile(state: ProfileUiState) {
         }
 
         Text(
-            text = state.bio, Modifier
+            text = uiState.bio, Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             textAlign = TextAlign.Center
@@ -111,17 +134,65 @@ fun Profile(state: ProfileUiState) {
 
 }
 
+@Composable
+fun RepositoryItem(repo: GitHubRepository) {
+    Card(
+        Modifier.padding(8.dp),
+        elevation = 4.dp
+    ) {
+        Column {
+            Text(
+                text = repo.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.DarkGray)
+                    .padding(8.dp),
+                fontSize = 24.sp,
+                color = Color.White
+            )
+
+            if (repo.description.isNotBlank()) {
+                Text(
+                    text = repo.description,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                )
+            }
+        }
+
+    }
+
+}
+
 @Preview(showSystemUi = true)
 @Composable
 fun ProfilePreview() {
     ProfileGitHubTheme {
         Surface {
-            Profile(state = ProfileUiState(
-                user = "vtr0508",
-                image = "https://avatars.githubusercontent.com/u/122477531?v=4",
-                name = "Victor Viana",
-                bio = "Android developer"
-            ))
+            Profile(
+                uiState = ProfileUiState(
+                    user = "vtr0508",
+                    image = "https://avatars.githubusercontent.com/u/122477531?v=4",
+                    name = "Victor Viana",
+                    bio = "Android developer"
+                )
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RepositoryItemPreview() {
+    ProfileGitHubTheme {
+        Surface {
+            RepositoryItem(
+                repo = GitHubRepository(
+                    name = "Victor Viana",
+                    description = "Minha imformações pessoais"
+                )
+            )
         }
     }
 }

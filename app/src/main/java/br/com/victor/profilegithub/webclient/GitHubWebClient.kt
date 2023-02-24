@@ -1,18 +1,30 @@
 package br.com.victor.profilegithub.webclient
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import br.com.victor.profilegithub.model.ProfileUiState
+import br.com.victor.profilegithub.model.toGitHubRepository
+import br.com.victor.profilegithub.model.toProfileUiState
 import br.com.victor.profilegithub.service.GitHubService
-import kotlinx.coroutines.flow.flow
 
-class GitHubWebClient (private val service: GitHubService = RetrofitInit().gitHubService){
+class GitHubWebClient(private val service: GitHubService = RetrofitInit().gitHubService) {
 
-    fun findProfileBy(user: String) = flow {
+
+    var uiState by mutableStateOf(ProfileUiState())
+        private set
+
+
+    suspend fun findProfileBy(user:String){
         try {
-            emit(service.findProfileBy(user))
-        } catch (e: Exception){
-            Log.e("GitHubService", "findProfileBy: falha ao buscar usuario",e )
-        }
+            val profile = service.findProfileBy(user).toProfileUiState()
+            val repositories = service.findRepositoriesBy(user).map { it.toGitHubRepository()}
+            uiState = profile.copy(repository = repositories)
+        }catch (e:Exception){
+            Log.e("GitHubWebCLient", "findProfileBy: falha ao buscar usuario", e)
 
+        }
     }
 
 
